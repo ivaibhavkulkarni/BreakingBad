@@ -20,14 +20,68 @@ struct FetchService {
         let quoteURL = baseURL.appending(path: "quotes/random")
         let fetchURL = quoteURL.appending(queryItems: [URLQueryItem(name: "production", value: show)])
         
-            
+        
         // Fetch data
+        let (data, response) = try await URLSession.shared.data(from: fetchURL)
         
         // handle response
+        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
+            throw FetchError.badResponse
+        }
+        
+        // Decode data
+        let quote = try JSONDecoder().decode(Qoute.self, from: data)
+        
+        // Return data
+        return quote
+    }
+    
+    func fetchCharacter(_ name: String) async throws -> Char {
+        let characterURL = baseURL.appending(path: "characters")
+        let fetchURL = characterURL.appending(queryItems: [URLQueryItem(name: "name", value: name)])
+        
+        // Fetch data
+        let (data, response) = try await URLSession.shared.data(from: fetchURL)
+        
+        // handle response
+        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
+            throw FetchError.badResponse
+        }
         
         // Decode data
         
-        // Return data
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
         
+        let characters = try decoder.decode([Char].self, from: data)
+        
+        return characters[0]
+    }
+    
+    func fetchDeath(for character: String) async throws -> Death? {
+        
+        let fetchURL = baseURL.appending(path: "deaths")
+        
+        // Fetch data
+        let (data, response) = try await URLSession.shared.data(from: fetchURL)
+        
+        // handle response
+        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
+            throw FetchError.badResponse
+        }
+        
+        // Decode data
+        
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+        let deaths = try decoder.decode([Death].self, from: data)
+        
+        for death in deaths {
+            if death.character == character {
+                return death
+            }
+        }
+        return nil
     }
 }
